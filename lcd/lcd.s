@@ -5,10 +5,17 @@
 .export lcd_clear
 .export lcd_init_no_cursor
 .export lcd_gotoxy
+.export lcd_print_decimal
 
-E  = %10000000 
-RW = %01000000 
+E  = %10000000
+RW = %01000000
 RS = %00100000
+
+.segment "ZEROPAGE"
+hundreds:   .res 1
+remainder:  .res 1
+tens:       .res 1
+ones:       .res 1
 
 .segment "CODE"
 
@@ -72,7 +79,9 @@ lcd_gotoxy:
     beq @row0
     txa
     clc
-    adc #$40
+    ;adc #40 für normales LCD JA
+    ; TODO: When switching to real Hardware -> Change to adding 40
+    adc #32 ; für emulator
     jmp @send
 @row0:
     txa
@@ -80,3 +89,69 @@ lcd_gotoxy:
     ora #%10000000
     jsr lcd_instruction
     rts
+
+lcd_print_decimal:
+  ; Input: A register contains value to print (0-255)
+  ; Prints the decimal value to LCD
+  ; Uses: Y, X as temporary storage for digit counters
+  
+  pha                ; Save original value
+ 
+  ; First, handle the hundreds place
+  lda #0
+  sta hundreds       ; Use as temp for hundreds count
+  pla
+  
+  ; Divide by 100
+@div100:
+  cmp #100
+  bcc @div100_done
+  sbc #100
+  inc hundreds
+  jmp @div100
+  
+@div100_done:
+  sta remainder      ; Store remainder (tens+ones)
+  
+  ; Print hundreds digit (only if non-zero)
+  lda hundreds
+  beq @skip_hundreds
+  ora #$30
+  jsr lcd_print_char
+  
+@skip_hundreds:
+  lda remainder      ; Get remainder
+  
+  ; Handle tens place
+  lda #0
+  sta tens           ; Tens counter
+  lda remainder
+  
+@div10:
+  cmp #10
+  bcc @div10_done
+  sbc #10
+  inc tens
+  jmp @div10
+  
+@div10_done:
+  sta ones           ; Store ones
+  
+  ; Print tens digit (only if hundreds was printed or tens > 0)
+  lda hundreds
+  bne @print_tens    ; If hundreds was printed, always print tens
+  lda tens
+  beq @skip_tens     ; If tens is zero and no hundreds, skip
+  
+@print_tens:
+  lda tens
+  ora #$30
+  jsr lcd_print_char
+  
+@skip_tens:
+  ; Always print ones digit
+  lda ones
+  ora #$30
+  jsr lcd_print_char
+  
+  rts

@@ -43,15 +43,10 @@ game_loop:
   lda #$C3
   sta VIA_T1CH
 
-  ;jsr update_physics
-  ;jsr draw_frame
-  jsr lcd_clear
-  inc Dino_Y
-  lda Dino_Y
-  jsr lcd_print_char
+  jsr update_physics
+  jsr draw_frame
 
-
-  ;Sync to 20 FPS
+  ; Sync to 20 FPS
 @sync:
   lda VIA_IFR
   and #%01000000
@@ -59,6 +54,41 @@ game_loop:
   lda VIA_T1CL
   jmp game_loop
 
+;------------------------------------------------------------
+;  Subroutines
+;------------------------------------------------------------
+
+draw_frame:
+  jsr lcd_clear
+  
+  ; Draw Dino
+  ldx #$1
+  ldy Dino_Y
+  jsr lcd_gotoxy
+  lda #'D' ; TODO: Add custom Dino Character
+  jsr lcd_print_char
+
+  ; Draw Cactus
+  ldx Cactus_X
+  ldy #1
+  jsr lcd_gotoxy
+  lda #'k' ; TODO: Add custom cactus Character
+  jsr lcd_print_char
+
+  rts
+
+
+update_physics:
+  ldx Cactus_X
+  dex
+  txa
+  sta Cactus_X
+  
+  rts
+
+;------------------------------------------------------------
+;  IRQ
+;------------------------------------------------------------
 
 irq_handler:
   pha
