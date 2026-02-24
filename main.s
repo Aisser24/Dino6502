@@ -1,3 +1,4 @@
+.setcpu "65C02"
 .include "lcd.inc"
 .include "defs.inc"
 
@@ -35,11 +36,54 @@ reset:
   jsr lcd_init_no_cursor
 
 
-loop:
-  
+game_loop:
+  ; Start 50ms Frame Timer (50.000 -> $C350 cycles)
+  lda #$50
+  sta VIA_T1CL
+  lda #$C3
+  sta VIA_T1CH
+
+  ;jsr update_physics
+  ;jsr draw_frame
+  jsr lcd_clear
+  inc Dino_Y
+  lda Dino_Y
+  jsr lcd_print_char
+
+
+  ;Sync to 20 FPS
+@sync:
+  lda VIA_IFR
+  and #%01000000
+  beq @sync
+  lda VIA_T1CL
+  jmp game_loop
 
 
 irq_handler:
+  pha
+  phx
+  phy
+
+  lda VIA_IFR
+  and #%00000010
+  beq @exit
+
+  lda Dino_Y
+  cmp #1
+  bne @clear_flag
+
+  lda #0
+  sta Dino_Y
+  lda #10
+  sta Jump_Timer
+
+@clear_flag:
+  bit VIA_PORTA
+@exit:
+  ply
+  plx
+  pla
   rti
 
 

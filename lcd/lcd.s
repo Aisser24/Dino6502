@@ -4,6 +4,7 @@
 .export lcd_print_char
 .export lcd_clear
 .export lcd_init_no_cursor
+.export lcd_gotoxy
 
 E  = %10000000 
 RW = %01000000 
