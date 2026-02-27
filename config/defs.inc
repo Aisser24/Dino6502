@@ -7,3 +7,4 @@ VIA_T1CL = $6004;
 VIA_T1CH = $6005;
 VIA_IFR = $600d;
 VIA_IER = $600e;
+VIA_ACR = $600b;

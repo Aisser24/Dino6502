@@ -25,7 +25,9 @@ reset:
   ; Setup CA1 Interrupt (Falling edge for button)
   lda #%00000000  
   sta VIA_PCR
-  lda #%10000010  ; Enable CA1 interrupt
+  lda #%00000000  ; T1 one-shot mode, no latching
+  sta VIA_ACR
+  lda #%01111111  ; Disable all VIA interrupts (using polling)
   sta VIA_IER
 
   ; Init Variables
@@ -35,17 +37,43 @@ reset:
   lda #15         ; Start Cactus at right edge
   sta Cactus_X
   sta Prev_Cactus_X
+  lda #0
+  sta Jump_Timer
 
-  cli ; Allow Interrupts
+  ; Interrupts stay disabled — button is polled via IFR
   jsr lcd_init_no_cursor
   jsr load_custom_chars
+  jsr lcd_clear
 
 
 game_loop:
+  ; Poll button (CA1 flag set on falling edge regardless of IER)
+  lda VIA_IFR
+  and #%00000010
+  beq @no_press
+  bit VIA_PORTA       ; Clear CA1 flag
+  lda Dino_Y
+  cmp #1
+  bne @no_press       ; Ignore if already jumping
+  lda #0
+  sta Dino_Y
+  lda #5
+  sta Jump_Timer
+@no_press:
   jsr update_physics
   jsr draw_frame
 
-  jsr software_delay
+  ; Software delay ~200ms at 1MHz
+  ; Inner: 256 * 5 = 1280 cycles, Outer: 156 * 1286 ≈ 200k cycles
+  ldy #156
+@delay_outer:
+  ldx #0
+@delay_inner:
+  dex
+  bne @delay_inner
+  dey
+  bne @delay_outer
+
   jmp game_loop
 
 game_over:
@@ -120,9 +148,8 @@ update_physics:
 
   ;if is Jumping -> Decrement Jump Timer
   lda Jump_Timer
-  bne @set_on_bottom
-  sbc #1
-  sta Jump_Timer
+  beq @set_on_bottom
+  dec Jump_Timer
   jmp @jump_check_done
 @set_on_bottom:
   lda #1
@@ -146,50 +173,12 @@ load_custom_chars:
   bne @loop
   rts
 
-; Software delay ~100ms (10 FPS) at 1 MHz
-; Inner loop: 256 iterations × 5 cycles = ~1280 cycles
-; Outer loop: 78 × 1280 ≈ 99840 cycles ≈ 100ms
-software_delay:
-  ldx #78
-  ;ldx #250
-@outer:
-  ldy #0           ; 0 wraps to 256 iterations
-@inner:
-  dey
-  bne @inner
-  dex
-  bne @outer
-  rts
 
 ;------------------------------------------------------------
 ;  IRQ
 ;------------------------------------------------------------
 
 irq_handler:
-  pha
-  phx
-  phy
-
-  lda VIA_IFR
-  and #%00000010
-  beq @exit
-
-  lda Dino_Y
-  cmp #1
-  bne @clear_flag
-
-  lda #0
-  sta Dino_Y
-  lda #10
-  ;lda #50
-  sta Jump_Timer
-
-@clear_flag:
-  bit VIA_PORTA
-@exit:
-  ply
-  plx
-  pla
   rti
 
 .segment "RODATA"

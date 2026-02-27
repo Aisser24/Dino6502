@@ -83,9 +83,8 @@ lcd_gotoxy:
     beq @row0
     txa
     clc
-    ;adc #40 für normales LCD JA
-    ; TODO: When switching to real Hardware -> Change to adding 40
-    adc #32 ; für emulator
+    adc #$40 ; Row 1 DDRAM starts at $40 (64 decimal)
+    ;adc #32 ; für emulator
     jmp @send
 @row0:
     txa
