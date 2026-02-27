@@ -1,3 +1,4 @@
+.setcpu "65C02"
 .include "defs.inc"
 
 .export lcd_instruction
@@ -6,6 +7,8 @@
 .export lcd_init_no_cursor
 .export lcd_gotoxy
 .export lcd_print_decimal
+.export lcd_print_string
+.export MSG_PTR
 
 E  = %10000000
 RW = %01000000
@@ -16,6 +19,7 @@ hundreds:   .res 1
 remainder:  .res 1
 tens:       .res 1
 ones:       .res 1
+MSG_PTR:    .res 1
 
 .segment "CODE"
 
@@ -154,4 +158,19 @@ lcd_print_decimal:
   ora #$30
   jsr lcd_print_char
   
+  rts
+
+lcd_print_string:
+  pha
+  phy
+  ldy #0            ; Reset index
+@next_char:
+  lda (MSG_PTR),y   ; Indirect Indexed: Look at address in $00/$01 + Y
+  beq @done         ; If we hit 0 (end of string), stop
+  jsr lcd_print_char    ; Send character to LCD
+  iny               ; Next character
+  jmp @next_char
+@done:
+  ply
+  pla
   rts
