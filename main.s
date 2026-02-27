@@ -150,8 +150,8 @@ load_custom_chars:
 ; Inner loop: 256 iterations × 5 cycles = ~1280 cycles
 ; Outer loop: 78 × 1280 ≈ 99840 cycles ≈ 100ms
 software_delay:
-  ;ldx #78
-  ldx #250
+  ldx #78
+  ;ldx #250
 @outer:
   ldy #0           ; 0 wraps to 256 iterations
 @inner:
@@ -180,7 +180,8 @@ irq_handler:
 
   lda #0
   sta Dino_Y
-  lda #50
+  lda #10
+  ;lda #50
   sta Jump_Timer
 
 @clear_flag:
