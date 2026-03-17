@@ -9,6 +9,7 @@ Cactus_X:   .res 1
 Jump_Timer: .res 1
 Prev_Dino_Y:  .res 1
 Prev_Cactus_X: .res 1
+Score: .res 1
 
 
 .segment "CODE"
@@ -39,11 +40,14 @@ reset:
   sta Prev_Cactus_X
   lda #0
   sta Jump_Timer
+  lda #0
+  sta Score
 
   ; Interrupts stay disabled — button is polled via IFR
   jsr lcd_init_no_cursor
   jsr load_custom_chars
   jsr lcd_clear
+  jsr print_score
 
 
 game_loop:
@@ -83,6 +87,9 @@ game_over:
   lda #>game_over_msg
   sta MSG_PTR+1
   jsr lcd_print_string
+
+  lda Score
+  jsr lcd_print_decimal
 @end:
   jmp @end
 
@@ -127,6 +134,13 @@ draw_frame:
 
   rts
 
+print_score:
+  ldx #13
+  ldy #0
+  jsr lcd_gotoxy
+  lda Score
+  jsr lcd_print_decimal
+  rts
 
 update_physics:
   ; check game over
@@ -144,6 +158,11 @@ update_physics:
   bne @skip_reset
   lda #15
   sta Cactus_X
+  lda Score
+  clc
+  adc #1
+  sta Score
+  jsr print_score
 @skip_reset:
 
   ;if is Jumping -> Decrement Jump Timer
@@ -182,7 +201,7 @@ irq_handler:
   rti
 
 .segment "RODATA"
-game_over_msg: .asciiz "   Game Over!   "
+game_over_msg: .asciiz "   Game Over!                              Score: "
 
 ; Custom character bitmaps (5x8 pixels, lower 5 bits per row)
 ; Char 0: Dino (T-Rex facing right)

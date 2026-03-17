@@ -22,6 +22,10 @@ $(TARGET): $(OBJS)
 %.o: %.s
 	$(AS) $(INCLUDE_DIRS) $< -o $@
 
+# Include file dependencies (ensures recompile when headers change)
+main.o: lcd/lcd.inc config/defs.inc
+lcd/lcd.o: config/defs.inc
+
 # A clean rule to start fresh
 .PHONY: all clean
 clean:

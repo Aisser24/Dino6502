@@ -8,7 +8,7 @@
 .export lcd_gotoxy
 .export lcd_print_decimal
 .export lcd_print_string
-.export MSG_PTR
+.exportzp MSG_PTR
 
 E  = %10000000
 RW = %01000000
